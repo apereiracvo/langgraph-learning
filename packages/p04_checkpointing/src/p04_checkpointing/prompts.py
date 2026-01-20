@@ -1,4 +1,4 @@
-"""Prompt loading and management utilities for p01_basic_graph.
+"""Prompt loading and management utilities for p04_checkpointing.
 
 This module provides pattern-specific wrappers around the shared prompt
 utilities. The main value is providing the prompts directory automatically
@@ -52,7 +52,7 @@ def load_system_prompt(
     Example:
         >>> prompt = load_system_prompt()
         >>> print(prompt[:50])
-        '# Assistant System Prompt...'
+        '# Checkpointing Assistant...'
 
         >>> # Custom prompt file
         >>> prompt = load_system_prompt("custom.md")

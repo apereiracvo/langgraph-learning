@@ -12,16 +12,7 @@ from pathlib import Path
 from shared.prompts import (
     clear_prompt_cache as _clear_prompt_cache,
     load_system_prompt as _load_system_prompt,
-    render_prompt,
 )
-
-
-__all__: list[str] = [
-    "clear_prompt_cache",
-    "get_prompts_directory",
-    "load_system_prompt",
-    "render_prompt",
-]
 
 
 def get_prompts_directory() -> Path:

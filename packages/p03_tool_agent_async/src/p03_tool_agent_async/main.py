@@ -26,7 +26,8 @@ from typing import TYPE_CHECKING, Any
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
 
-from p03_tool_agent_async.agents import create_basic_agent, create_react_agent
+from p03_tool_agent_async.agents.basic_agent import create_basic_agent
+from p03_tool_agent_async.agents.react_agent import create_react_agent
 from p03_tool_agent_async.prompts import load_system_prompt
 from p03_tool_agent_async.state import AgentState, create_initial_state
 from shared.exceptions import LLMConfigurationError, PromptLoadError

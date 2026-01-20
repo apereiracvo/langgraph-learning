@@ -143,7 +143,7 @@ def create_graph(settings: Settings) -> CompiledStateGraph:  # type: ignore[type
     llm_node_fn = create_async_llm_node(settings)
 
     # Add nodes
-    builder.add_node("llm", llm_node_fn)  # type: ignore[call-overload]
+    builder.add_node("llm", llm_node_fn)  # type: ignore[arg-type]
 
     # Define edges
     builder.add_edge(START, "llm")
@@ -155,5 +155,3 @@ def create_graph(settings: Settings) -> CompiledStateGraph:  # type: ignore[type
     return compiled_graph
 
 
-# Re-export GraphState for convenience
-__all__: list[str] = ["GraphState", "create_async_llm_node", "create_graph"]
