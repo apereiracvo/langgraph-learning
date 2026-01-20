@@ -3,15 +3,18 @@
 This pattern demonstrates:
 - Async LangGraph StateGraph with async LLM nodes
 - Multi-provider LLM support (OpenAI, Anthropic, Google)
+- Parallel execution across ALL available providers with asyncio.gather
 - Async graph invocation with `ainvoke()`
-- Streaming support with `astream()`
+- Streaming support with `astream()` (single provider demo)
 
 Run with: task run -- p02-async-basic-graph
 
 Configuration:
-    LLM provider is configured via settings.llm.provider, which can be set
-    via LLM__PROVIDER or LLM_PROVIDER environment variables.
-    Defaults to 'openai' if not set.
+    The pattern automatically detects and uses all configured providers.
+    Configure API keys via environment variables:
+    - OPENAI_API_KEY for OpenAI
+    - ANTHROPIC_API_KEY for Anthropic
+    - GOOGLE_API_KEY for Google
 """
 
 from __future__ import annotations
@@ -36,42 +39,19 @@ if TYPE_CHECKING:
     from shared.enums import LLMProvider
 
 
-def get_provider_from_settings() -> LLMProvider:
-    """Get LLM provider from settings.
-
-    Reads the provider from settings.llm.provider and returns
-    the corresponding LLMProvider enum value.
-
-    Returns:
-        The selected LLMProvider.
-    """
-    return settings.llm.provider
-
-
-def _validate_provider(
-    provider: LLMProvider,
-    available: list[LLMProvider],
-) -> bool:
-    """Validate that the selected provider is available.
+def _validate_providers(available: list[LLMProvider]) -> bool:
+    """Validate that at least one provider is available.
 
     Args:
-        provider: The selected LLM provider.
         available: List of available providers.
 
     Returns:
-        True if provider is available and valid, False otherwise.
+        True if at least one provider is available, False otherwise.
     """
     if not available:
         logger.error(
             "No LLM providers configured. Please set at least one API key "
             "(OPENAI_API_KEY, ANTHROPIC_API_KEY, or GOOGLE_API_KEY)."
-        )
-        return False
-
-    if provider not in available:
-        logger.error(
-            f"Provider '{provider.value}' is not configured. "
-            f"Available providers: {[p.value for p in available]}"
         )
         return False
 
@@ -102,45 +82,61 @@ def _display_result(
     print("=" * 60 + "\n")
 
 
-async def run_with_ainvoke(
+async def run_with_ainvoke_for_provider(
     graph: CompiledStateGraph,  # type: ignore[type-arg]
-    initial_state: GraphState,
     provider: LLMProvider,
     user_input: str,
-) -> None:
-    """Run the graph using async ainvoke.
+    system_prompt: str,
+) -> tuple[LLMProvider, dict[str, Any] | None, str | None]:
+    """Run the graph using async ainvoke for a specific provider.
 
     Demonstrates basic async invocation where the entire result
-    is returned after completion.
+    is returned after completion. Returns the result for later display.
 
     Args:
         graph: The compiled graph to invoke.
-        initial_state: The initial state for the graph.
-        provider: The LLM provider being used.
-        user_input: The original user input for display.
+        provider: The LLM provider to use.
+        user_input: The user's input message.
+        system_prompt: The system prompt content.
+
+    Returns:
+        A tuple of (provider, result_dict, error_message).
+        If successful, error_message is None.
+        If failed, result_dict is None and error_message contains the error.
     """
-    logger.info("Invoking graph with ainvoke()", extra={"user_input": user_input})
+    logger.info(
+        f"Invoking graph with ainvoke() using {provider.value}",
+        extra={"user_input": user_input},
+    )
+
+    initial_state: GraphState = create_initial_state(
+        user_input=user_input,
+        provider=provider,
+        system_prompt=system_prompt,
+    )
 
     try:
         result: dict[str, Any] = await graph.ainvoke(initial_state)
     except LLMConfigurationError as e:
-        logger.error(f"LLM error during invocation: {e}")
-        sys.exit(1)
+        error_msg: str = f"LLM error with {provider.value}: {e}"
+        logger.error(error_msg)
+        return (provider, None, error_msg)
     except asyncio.CancelledError:
-        logger.warning("Graph execution was cancelled")
+        logger.warning(f"Graph execution was cancelled for {provider.value}")
         raise
     except Exception as e:
-        logger.error(f"Unexpected error during graph invocation: {e}")
-        sys.exit(1)
-
-    _display_result(user_input, result, provider)
+        error_msg = f"Unexpected error with {provider.value}: {e}"
+        logger.error(error_msg)
+        return (provider, None, error_msg)
+    else:
+        return (provider, result, None)
 
 
 async def run_with_astream(
     graph: CompiledStateGraph,  # type: ignore[type-arg]
-    initial_state: GraphState,
     provider: LLMProvider,
     user_input: str,
+    system_prompt: str,
 ) -> None:
     """Run the graph using async streaming.
 
@@ -149,11 +145,20 @@ async def run_with_astream(
 
     Args:
         graph: The compiled graph to invoke.
-        initial_state: The initial state for the graph.
-        provider: The LLM provider being used.
-        user_input: The original user input for display.
+        provider: The LLM provider to use.
+        user_input: The user's input message.
+        system_prompt: The system prompt content.
     """
-    logger.info("Invoking graph with astream()", extra={"user_input": user_input})
+    logger.info(
+        f"Invoking graph with astream() using {provider.value}",
+        extra={"user_input": user_input},
+    )
+
+    initial_state: GraphState = create_initial_state(
+        user_input=user_input,
+        provider=provider,
+        system_prompt=system_prompt,
+    )
 
     print("\n" + "=" * 60)
     print("USER INPUT:")
@@ -183,17 +188,20 @@ async def run_with_astream(
 
 
 async def async_main() -> None:
-    """Run the async LLM graph example.
+    """Run the async LLM graph example with all available providers.
 
     Async entry point that:
     1. Loads configuration from environment
-    2. Loads the system prompt from file
-    3. Creates and invokes the graph asynchronously
-    4. Displays the result
+    2. Detects all available LLM providers
+    3. Loads the system prompt from file
+    4. Creates the graph once
+    5. Executes all providers in PARALLEL using asyncio.gather
+    6. Displays results for each provider
+    7. Demonstrates streaming with a single provider
 
-    Demonstrates both `ainvoke()` and `astream()` patterns.
+    Demonstrates both `ainvoke()` (parallel) and `astream()` patterns.
     """
-    logger.info("Starting Pattern 02: Async LLM-Powered Graph")
+    logger.info("Starting Pattern 02: Async LLM-Powered Graph (Multi-Provider)")
 
     # Check available providers
     available: list[LLMProvider] = get_available_providers(settings)
@@ -202,14 +210,15 @@ async def async_main() -> None:
         extra={"providers": [p.value for p in available]},
     )
 
-    # Get provider from settings
-    provider: LLMProvider = get_provider_from_settings()
-
-    logger.info(f"Selected provider: {provider.value}")
-
-    # Validate provider availability
-    if not _validate_provider(provider, available):
+    # Validate at least one provider is available
+    if not _validate_providers(available):
         sys.exit(1)
+
+    print("\n" + "#" * 60)
+    print(f"# Found {len(available)} configured provider(s):")
+    for p in available:
+        print(f"#   - {p.value.upper()}")
+    print("#" * 60)
 
     # Load system prompt
     try:
@@ -219,7 +228,7 @@ async def async_main() -> None:
         logger.error(f"Failed to load system prompt: {e}")
         sys.exit(1)
 
-    # Create the graph
+    # Create the graph (once, reused for all providers)
     try:
         graph: CompiledStateGraph = create_graph(settings)  # type: ignore[type-arg]
         logger.info("Graph created successfully")
@@ -227,35 +236,59 @@ async def async_main() -> None:
         logger.error(f"LLM configuration error: {e}")
         sys.exit(1)
 
-    # Create initial state
+    # User input for parallel execution demo
     user_input: str = "What is LangGraph and how does it help with building AI agents?"
-    initial_state: GraphState = create_initial_state(
-        user_input=user_input,
-        provider=provider,
-        system_prompt=system_prompt,
+
+    # DEMO 1: Parallel execution with asyncio.gather
+    print("\n" + "#" * 60)
+    print("# DEMO 1: Using ainvoke() - Parallel execution across ALL providers")
+    print("#" * 60)
+
+    # Create tasks for all providers
+    tasks = [
+        run_with_ainvoke_for_provider(graph, provider, user_input, system_prompt)
+        for provider in available
+    ]
+
+    # Execute all in parallel
+    results: list[tuple[LLMProvider, dict[str, Any] | None, str | None]] = (
+        await asyncio.gather(*tasks)
     )
 
-    # Demonstrate async invocation with ainvoke()
-    print("\n" + "#" * 60)
-    print("# DEMO 1: Using ainvoke() - Full response after completion")
-    print("#" * 60)
-    await run_with_ainvoke(graph, initial_state, provider, user_input)
+    # Display results in order
+    success_count: int = 0
+    for provider, result, error in results:
+        print("\n" + "#" * 60)
+        print(f"# Result from provider: {provider.value.upper()}")
+        print("#" * 60)
 
-    # Demonstrate streaming with astream()
+        if result is not None:
+            _display_result(user_input, result, provider)
+            success_count += 1
+        else:
+            print(f"\n[ERROR] {error}\n")
+
+    # Summary for DEMO 1
     print("\n" + "#" * 60)
-    print("# DEMO 2: Using astream() - Streaming state updates")
+    print("# DEMO 1 EXECUTION SUMMARY")
     print("#" * 60)
-    # Create fresh state for second demo
-    initial_state_streaming: GraphState = create_initial_state(
-        user_input="Explain async/await in Python in 2-3 sentences.",
-        provider=provider,
-        system_prompt=system_prompt,
-    )
+    print(f"# Total providers: {len(available)}")
+    print(f"# Successful: {success_count}")
+    print(f"# Failed: {len(available) - success_count}")
+    print("#" * 60)
+
+    # DEMO 2: Streaming with first available provider only
+    print("\n" + "#" * 60)
+    print("# DEMO 2: Using astream() - Streaming state updates (single provider)")
+    print(f"# Using: {available[0].value.upper()}")
+    print("#" * 60)
+
+    stream_user_input: str = "Explain async/await in Python in 2-3 sentences."
     await run_with_astream(
         graph,
-        initial_state_streaming,
-        provider,
-        "Explain async/await in Python in 2-3 sentences.",
+        available[0],
+        stream_user_input,
+        system_prompt,
     )
 
 
