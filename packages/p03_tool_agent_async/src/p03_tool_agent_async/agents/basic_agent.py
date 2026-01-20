@@ -166,8 +166,8 @@ def _create_tool_node(
             else:
                 try:
                     tool_func = tools_by_name[tool_name]
-                    # Invoke tool (sync tools work fine here)
-                    result = tool_func.invoke(tool_args)
+                    # Invoke tool asynchronously
+                    result = await tool_func.ainvoke(tool_args)
                 except Exception as e:
                     result = f"Error executing {tool_name}: {e!s}"
 

@@ -1,18 +1,18 @@
-"""Tool definitions for the Tool Agent pattern.
+"""Async tool definitions for the Tool Agent pattern.
 
-This module provides custom tools that demonstrate LangGraph's tool-calling
-capabilities. Tools are defined using the @tool decorator with comprehensive
-docstrings and type hints to guide the LLM's tool selection.
+This module provides async custom tools that demonstrate LangGraph's tool-calling
+capabilities. Tools are defined using the @tool decorator on async functions
+with comprehensive docstrings and type hints to guide the LLM's tool selection.
 
 Tools included:
 - calculator: Perform basic math operations (add, subtract, multiply, divide)
 - weather_lookup: Simulated weather lookup for a city (returns mock data)
 
 Best Practices Demonstrated:
+- Async tools for non-blocking execution in async agents
 - Clear, descriptive docstrings that help the LLM understand when to use tools
 - Type hints for all parameters and return values
 - Robust error handling with informative error messages
-- Async support via _arun methods for non-blocking execution
 """
 
 from __future__ import annotations
@@ -60,7 +60,7 @@ class WeatherInput(BaseModel):
 
 
 @tool(args_schema=CalculatorInput)
-def calculator(a: float, b: float, operation: MathOperation) -> str:
+async def calculator(a: float, b: float, operation: MathOperation) -> str:
     """Perform basic math operations on two numbers.
 
     Use this tool when you need to calculate the result of a mathematical
@@ -140,14 +140,15 @@ _MOCK_WEATHER_DATA: dict[str, dict[str, str | int]] = {
 
 
 @tool(args_schema=WeatherInput)
-def weather_lookup(city: str) -> str:
+async def weather_lookup(city: str) -> str:
     """Look up the current weather for a specified city.
 
     Use this tool when you need to find out the current weather conditions
     in a particular city. Returns temperature, conditions, humidity, and wind.
 
     Note: This is a simulated weather service for demonstration purposes.
-    In a production environment, this would call a real weather API.
+    In a production environment, this would call a real weather API using
+    an async HTTP client like aiohttp or httpx.
 
     Args:
         city: The name of the city to look up weather for.
