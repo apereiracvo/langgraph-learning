@@ -1,17 +1,17 @@
-"""ReAct agent implementation using LangGraph's prebuilt pattern.
+"""ReAct agent implementation using LangChain's create_agent.
 
-This module implements a ReAct (Reasoning + Acting) agent using LangGraph's
-prebuilt `create_react_agent` function. The ReAct pattern alternates between:
+This module implements a ReAct (Reasoning + Acting) agent using LangChain's
+`create_agent` function. The ReAct pattern alternates between:
 1. Reasoning: The LLM analyzes the current state and decides what to do
 2. Acting: The agent executes a tool based on the reasoning
 3. Observation: The tool result is fed back to the LLM
 
-LangGraph provides `create_react_agent` as a prebuilt solution that handles
+LangChain provides `create_agent` as a prebuilt solution that handles
 the ReAct loop automatically. This module wraps it to integrate with our
 state management and multi-provider support.
 
 Key patterns demonstrated:
-- Using LangGraph's prebuilt `create_react_agent`
+- Using LangChain's `create_agent` for tool-calling loops
 - Custom state adapter for our AgentState schema
 - Async invocation with state translation
 """
@@ -20,8 +20,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from langchain.agents import create_agent as lc_create_agent
 from langchain_core.messages import AIMessage, BaseMessage, SystemMessage
-from langgraph.prebuilt import create_react_agent as lg_create_react_agent
 
 from p03_tool_agent_async.tools import get_all_tools
 from shared.llm import create_llm
@@ -39,9 +39,9 @@ if TYPE_CHECKING:
 
 
 class ReactAgentWrapper:
-    """Wrapper around LangGraph's prebuilt ReAct agent.
+    """Wrapper around LangChain's create_agent.
 
-    This wrapper adapts the prebuilt ReAct agent to work with our custom
+    This wrapper adapts the prebuilt agent to work with our custom
     AgentState schema and provides async invocation with state translation.
 
     Attributes:
@@ -61,14 +61,16 @@ class ReactAgentWrapper:
     def _create_agent_for_provider(
         self,
         provider: LLMProvider,
+        system_prompt: str,
     ) -> CompiledStateGraph:  # type: ignore[type-arg]
         """Create a ReAct agent for a specific provider.
 
         Args:
             provider: The LLM provider to use.
+            system_prompt: The system prompt for the agent.
 
         Returns:
-            A compiled ReAct agent graph.
+            A compiled agent graph.
         """
         llm: BaseChatModel = create_llm(
             provider,
@@ -76,10 +78,11 @@ class ReactAgentWrapper:
             temperature=0.0,
         )
 
-        # Create the prebuilt ReAct agent
-        agent: CompiledStateGraph = lg_create_react_agent(  # type: ignore[type-arg]
-            llm,
-            self.tools,
+        # Create the agent with system prompt
+        agent: CompiledStateGraph = lc_create_agent(  # type: ignore[type-arg]
+            model=llm,
+            tools=self.tools,
+            system_prompt=system_prompt,
         )
 
         return agent
@@ -105,18 +108,15 @@ class ReactAgentWrapper:
         system_prompt: str = state["system_prompt"]
         messages: list[BaseMessage] = list(state["messages"])
 
-        # Create agent for this provider
+        # Create agent for this provider with system prompt
         agent: CompiledStateGraph = self._create_agent_for_provider(  # type: ignore[type-arg]
-            provider
+            provider,
+            system_prompt,
         )
 
-        # Build input messages with system prompt
-        system_message: SystemMessage = SystemMessage(content=system_prompt)
-        input_messages: list[BaseMessage] = [system_message, *messages]
-
-        # Invoke the prebuilt agent
+        # Invoke the agent (system prompt is already configured)
         result: dict[str, Any] = await agent.ainvoke(
-            {"messages": input_messages},
+            {"messages": messages},
             config=config,
         )
 
@@ -157,7 +157,7 @@ class ReactAgentWrapper:
 def create_react_agent(settings: Settings) -> ReactAgentWrapper:
     """Create a ReAct agent wrapper.
 
-    This function creates a wrapper around LangGraph's prebuilt ReAct agent
+    This function creates a wrapper around LangChain's create_agent
     that integrates with our state management and multi-provider support.
 
     Args:
