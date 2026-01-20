@@ -5,7 +5,7 @@ description = "Shared utilities for LangGraph patterns"
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.0",
-    "python-dotenv>=1.0",
+    "pydantic-settings>=2.0",
 ]
 
 [build-system]

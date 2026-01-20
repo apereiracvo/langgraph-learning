@@ -37,7 +37,7 @@ def process_node(state: State) -> dict[str, str]:
     Returns:
         A dictionary with the output key to update state.
     """
-    input_text = state["input"]
+    input_text: str = state["input"]
     return {"output": f"Processed: {input_text}"}
 
 
@@ -48,7 +48,7 @@ def create_graph() -> CompiledStateGraph[State]:
         A compiled StateGraph ready for invocation.
     """
     # Initialize the graph builder with our state schema
-    builder = StateGraph(State)
+    builder: StateGraph[State] = StateGraph(State)
 
     # Add the processing node
     builder.add_node("process", process_node)

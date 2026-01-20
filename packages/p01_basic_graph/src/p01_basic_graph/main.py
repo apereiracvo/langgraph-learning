@@ -11,26 +11,29 @@ Run with: task run -- p01-basic-graph
 
 from __future__ import annotations
 
-from p01_basic_graph.graph import create_graph
-from shared.utils import format_response, setup_environment
+from typing import TYPE_CHECKING, Any
+
+from p01_basic_graph.graph import State, create_graph
+from shared.logger import logger
+from shared.utils import format_response
+
+
+if TYPE_CHECKING:
+    from langgraph.graph.state import CompiledStateGraph
 
 
 def main() -> None:
     """Run the basic graph example."""
-    setup_environment()
-
-    print("=" * 50)
-    print("Pattern 01: Basic Graph")
-    print("=" * 50)
+    logger.info("Starting Pattern 01: Basic Graph")
 
     # Create and compile the graph
-    graph = create_graph()
+    graph: CompiledStateGraph[State] = create_graph()
 
     # Invoke the graph with sample input
-    result = graph.invoke({"input": "Hello, LangGraph!"})  # type: ignore[arg-type]
+    result: dict[str, Any] = graph.invoke({"input": "Hello, LangGraph!"})  # type: ignore[arg-type]
 
-    print(format_response(result))
-    print("=" * 50)
+    logger.info("Graph execution completed", extra={"result": result})
+    logger.info(format_response(result))
 
 
 if __name__ == "__main__":
