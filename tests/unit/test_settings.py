@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import pytest
 
-from shared.enums import Environment, LogLevel
+from shared.enums import Environment, LLMProvider, LogLevel
 from shared.settings import (
     LangSmithSettings,
     LLMSettings,
@@ -34,17 +34,21 @@ class TestLLMSettings:
 
         assert llm_settings.openai_api_key is None
         assert llm_settings.anthropic_api_key is None
+        assert llm_settings.google_api_key is None
         assert llm_settings.default_model == "gpt-4"
+        assert llm_settings.provider == LLMProvider.OPENAI
 
     def test_placeholder_rejection_your_key_here(self) -> None:
         """Placeholder 'your-key-here' patterns should be treated as None."""
         llm_settings: LLMSettings = LLMSettings(
             openai_api_key="your-openai-key-here",  # type: ignore[arg-type]
             anthropic_api_key="your-anthropic-key-here",  # type: ignore[arg-type]
+            google_api_key="your-google-key-here",  # type: ignore[arg-type]
         )
 
         assert llm_settings.openai_api_key is None
         assert llm_settings.anthropic_api_key is None
+        assert llm_settings.google_api_key is None
 
     def test_placeholder_rejection_sk_xxx(self) -> None:
         """Placeholder 'sk-xxx' patterns should be treated as None."""
@@ -296,6 +300,73 @@ class TestSettings:
         assert test_settings.llm.openai_api_key is not None
         assert test_settings.llm.openai_api_key.get_secret_value() == "sk-nested-key"
 
+    def test_backward_compat_google_api_key(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Flat GOOGLE_API_KEY should sync to nested settings."""
+        monkeypatch.setenv("GOOGLE_API_KEY", "google-flat-key-12345")
+        monkeypatch.delenv("LLM__GOOGLE_API_KEY", raising=False)
+
+        clear_settings_cache()
+
+        test_settings: Settings = Settings(_env_file=None)  # type: ignore[call-arg]
+
+        # Flat var should be synced to nested
+        assert test_settings.llm.google_api_key is not None
+        assert (
+            test_settings.llm.google_api_key.get_secret_value()
+            == "google-flat-key-12345"
+        )
+
+    def test_backward_compat_llm_provider(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Flat LLM_PROVIDER should sync to nested settings."""
+        monkeypatch.setenv("LLM_PROVIDER", "anthropic")
+        monkeypatch.delenv("LLM__PROVIDER", raising=False)
+
+        clear_settings_cache()
+
+        test_settings: Settings = Settings(_env_file=None)  # type: ignore[call-arg]
+
+        # Flat var should be synced to nested
+        assert test_settings.llm.provider == LLMProvider.ANTHROPIC
+
+    def test_nested_google_api_key_takes_precedence(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """When both flat and nested Google API key set, nested should take precedence."""
+        monkeypatch.setenv("GOOGLE_API_KEY", "google-flat-key")
+        monkeypatch.setenv("LLM__GOOGLE_API_KEY", "google-nested-key")
+
+        clear_settings_cache()
+
+        test_settings: Settings = Settings(_env_file=None)  # type: ignore[call-arg]
+
+        # Nested should be used (not overwritten by flat)
+        assert test_settings.llm.google_api_key is not None
+        assert (
+            test_settings.llm.google_api_key.get_secret_value() == "google-nested-key"
+        )
+
+    def test_nested_llm_provider_takes_precedence(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """When both flat and nested LLM provider set, nested should take precedence."""
+        monkeypatch.setenv("LLM_PROVIDER", "anthropic")
+        monkeypatch.setenv("LLM__PROVIDER", "google")
+
+        clear_settings_cache()
+
+        test_settings: Settings = Settings(_env_file=None)  # type: ignore[call-arg]
+
+        # Nested should be used (not overwritten by flat)
+        assert test_settings.llm.provider == LLMProvider.GOOGLE
+
 
 class TestSettingsCaching:
     """Tests for settings caching behavior."""
@@ -462,3 +533,43 @@ class TestEnumValidation:
         errors: list[dict[str, object]] = exc_info.value.errors()
         assert len(errors) == 1
         assert errors[0]["loc"] == ("log_level",)
+
+    def test_llm_provider_enum_values(self) -> None:
+        """LLMProvider enum should have expected values."""
+        assert LLMProvider.OPENAI == "openai"
+        assert LLMProvider.ANTHROPIC == "anthropic"
+        assert LLMProvider.GOOGLE == "google"
+
+    def test_llm_provider_str_enum_behavior(self) -> None:
+        """LLMProvider enum should behave as str for comparisons."""
+        provider: LLMProvider = LLMProvider.OPENAI
+        assert provider == "openai"
+        assert str(provider) == "openai"
+        assert isinstance(provider, str)
+
+    def test_llm_settings_provider_accepts_enum(self) -> None:
+        """LLMSettings should accept LLMProvider enum directly."""
+        llm_settings: LLMSettings = LLMSettings(provider=LLMProvider.GOOGLE)
+        assert llm_settings.provider == LLMProvider.GOOGLE
+        assert llm_settings.provider == "google"
+
+    def test_llm_settings_provider_accepts_string(self) -> None:
+        """LLMSettings should coerce valid string to LLMProvider enum."""
+        llm_settings: LLMSettings = LLMSettings(
+            provider="anthropic",  # type: ignore[arg-type]
+        )
+        assert llm_settings.provider == LLMProvider.ANTHROPIC
+        assert isinstance(llm_settings.provider, LLMProvider)
+
+    def test_llm_settings_provider_rejects_invalid(self) -> None:
+        """LLMSettings should reject invalid provider values."""
+        from pydantic import ValidationError  # noqa: PLC0415
+
+        with pytest.raises(ValidationError) as exc_info:
+            LLMSettings(
+                provider="invalid_provider",  # type: ignore[arg-type]
+            )
+
+        errors: list[dict[str, object]] = exc_info.value.errors()
+        assert len(errors) == 1
+        assert errors[0]["loc"] == ("provider",)

@@ -25,11 +25,12 @@ from typing import Self
 from pydantic import BaseModel, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from shared.enums import Environment, LogLevel
+from shared.enums import Environment, LLMProvider, LogLevel
 
 
 __all__: list[str] = [
     "Environment",
+    "LLMProvider",
     "LLMSettings",
     "LangSmithSettings",
     "LogLevel",
@@ -43,13 +44,15 @@ __all__: list[str] = [
 class LLMSettings(BaseModel):
     """LLM provider API key configuration.
 
-    Supports both OpenAI and Anthropic API keys. At least one key should be
+    Supports OpenAI, Anthropic, and Google API keys. At least one key should be
     configured for patterns that use language models.
 
     Attributes:
         openai_api_key: OpenAI API key for GPT models.
         anthropic_api_key: Anthropic API key for Claude models.
+        google_api_key: Google API key for Gemini models.
         default_model: Default model identifier to use.
+        provider: Default LLM provider to use.
     """
 
     openai_api_key: SecretStr | None = Field(
@@ -60,12 +63,20 @@ class LLMSettings(BaseModel):
         default=None,
         description="Anthropic API key for Claude models",
     )
+    google_api_key: SecretStr | None = Field(
+        default=None,
+        description="Google API key for Gemini models",
+    )
     default_model: str = Field(
         default="gpt-4",
         description="Default model identifier",
     )
+    provider: LLMProvider = Field(
+        default=LLMProvider.OPENAI,
+        description="Default LLM provider (openai, anthropic, google)",
+    )
 
-    @field_validator("openai_api_key", "anthropic_api_key", mode="before")
+    @field_validator("openai_api_key", "anthropic_api_key", "google_api_key", mode="before")
     @classmethod
     def reject_placeholder_keys(cls, v: str | None) -> str | None:
         """Reject placeholder API keys that are not real values.
@@ -88,6 +99,7 @@ class LLMSettings(BaseModel):
         placeholders: list[str] = [
             "your-openai-key-here",
             "your-anthropic-key-here",
+            "your-google-key-here",
             "sk-xxx",
             "your-key-here",
             "your-api-key-here",
@@ -236,6 +248,14 @@ class Settings(BaseSettings):
         default=None,
         description="Anthropic API key (backward compat, prefer LLM__ANTHROPIC_API_KEY)",
     )
+    google_api_key: SecretStr | None = Field(
+        default=None,
+        description="Google API key (backward compat, prefer LLM__GOOGLE_API_KEY)",
+    )
+    llm_provider: LLMProvider = Field(
+        default=LLMProvider.OPENAI,
+        description="LLM provider selection (backward compat, prefer LLM__PROVIDER)",
+    )
     langchain_api_key: SecretStr | None = Field(
         default=None,
         description="LangChain API key (backward compat, prefer LANGSMITH__API_KEY)",
@@ -252,6 +272,7 @@ class Settings(BaseSettings):
     @field_validator(
         "openai_api_key",
         "anthropic_api_key",
+        "google_api_key",
         "langchain_api_key",
         mode="before",
     )
@@ -275,6 +296,7 @@ class Settings(BaseSettings):
         placeholders: list[str] = [
             "your-openai-key-here",
             "your-anthropic-key-here",
+            "your-google-key-here",
             "your-langsmith-key-here",
             "your-langchain-key-here",
             "your-key-here",
@@ -313,6 +335,15 @@ class Settings(BaseSettings):
             object.__setattr__(self.llm, "openai_api_key", self.openai_api_key)
         if self.anthropic_api_key and not self.llm.anthropic_api_key:
             object.__setattr__(self.llm, "anthropic_api_key", self.anthropic_api_key)
+        if self.google_api_key and not self.llm.google_api_key:
+            object.__setattr__(self.llm, "google_api_key", self.google_api_key)
+
+        # Sync LLM provider from flat env var
+        if (
+            self.llm_provider != LLMProvider.OPENAI
+            and self.llm.provider == LLMProvider.OPENAI
+        ):
+            object.__setattr__(self.llm, "provider", self.llm_provider)
 
         # Sync LangSmith settings from flat env vars
         if self.langchain_api_key and not self.langsmith.api_key:

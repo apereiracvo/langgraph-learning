@@ -20,8 +20,9 @@ classifiers = [
 dependencies = [
     "langchain>=1.0,<2.0",
     "langgraph>=0.2,<2.0",
-    "langchain-openai>=0.2,<2.0",
+    "langchain-openai>=0.3,<2.0",
     "langchain-anthropic>=0.3,<2.0",
+    "langchain-google-genai>=2.0,<3.0",
     "python-dotenv>=1.0,<2.0",
     "pydantic>=2.0,<3.0",
 ]
@@ -215,7 +216,7 @@ enable_error_code = ["ignore-without-code", "redundant-cast", "truthy-bool"]
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["langchain.*", "langgraph.*", "langchain_openai.*", "langchain_anthropic.*"]
+module = ["langchain.*", "langgraph.*", "langchain_openai.*", "langchain_anthropic.*", "langchain_google_genai.*"]
 ignore_missing_imports = true
 
 # =============================================================================

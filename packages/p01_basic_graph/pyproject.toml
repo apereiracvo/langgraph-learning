@@ -1,12 +1,15 @@
 [project]
 name = "p01-basic-graph"
-version = "0.1.0"
-description = "Pattern 01: Basic Graph with LangGraph"
+version = "0.2.0"
+description = "Pattern 01: LLM-Powered Graph with Multi-Provider Support"
 requires-python = ">=3.12"
 dependencies = [
     "shared",
-    "langchain>=0.3",
-    "langgraph>=0.2",
+    "langchain>=1.0,<2.0",
+    "langgraph>=0.2,<2.0",
+    "langchain-openai>=0.3,<2.0",
+    "langchain-anthropic>=0.3,<2.0",
+    "langchain-google-genai>=2.0,<3.0",
 ]
 
 [tool.uv.sources]

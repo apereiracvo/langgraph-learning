@@ -17,6 +17,7 @@ from enum import StrEnum
 
 __all__: list[str] = [
     "Environment",
+    "LLMProvider",
     "LogLevel",
 ]
 
@@ -43,6 +44,30 @@ class Environment(StrEnum):
     DEVELOPMENT = "development"
     STAGING = "staging"
     PRODUCTION = "production"
+
+
+class LLMProvider(StrEnum):
+    """Supported LLM providers.
+
+    Defines the valid LLM providers for the application.
+
+    Attributes:
+        OPENAI: OpenAI's GPT models.
+        ANTHROPIC: Anthropic's Claude models.
+        GOOGLE: Google's Gemini models.
+
+    Example:
+        >>> from shared.enums import LLMProvider
+        >>> provider = LLMProvider.OPENAI
+        >>> print(provider)
+        'openai'
+        >>> provider == "openai"
+        True
+    """
+
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+    GOOGLE = "google"
 
 
 class LogLevel(StrEnum):
