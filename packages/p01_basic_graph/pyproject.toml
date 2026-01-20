@@ -1,0 +1,23 @@
+[project]
+name = "p01-basic-graph"
+version = "0.1.0"
+description = "Pattern 01: Basic Graph with LangGraph"
+requires-python = ">=3.12"
+dependencies = [
+    "shared",
+    "langchain>=0.3",
+    "langgraph>=0.2",
+]
+
+[tool.uv.sources]
+shared = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/p01_basic_graph"]
+
+[project.scripts]
+p01-basic-graph = "p01_basic_graph.main:main"

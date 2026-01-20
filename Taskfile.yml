@@ -1,0 +1,164 @@
+# Automation for common tasks: testing, linting, formatting, and environment management.
+# For more information, visit: https://taskfile.dev/
+
+version: "3"
+
+dotenv: [".env"]
+
+vars:
+  PROJECT_NAME: langgraph-learning
+  PYTHON_VERSION: 3.12.12
+  VENV: langgraph_learning
+  PYENV_VENV_PATH: "{{.HOME}}/.pyenv/versions/{{.PYTHON_VERSION}}/envs/{{.VENV}}"
+
+env:
+  # Tell UV to use pyenv's virtualenv instead of creating .venv
+  UV_PROJECT_ENVIRONMENT: "{{.PYENV_VENV_PATH}}"
+
+tasks:
+  # ==========================================================================
+  # Environment Management (pyenv + UV)
+  # ==========================================================================
+  pyenv-create:
+    desc: "Create pyenv virtualenv"
+    cmds:
+      - pyenv virtualenv {{.PYTHON_VERSION}} {{.VENV}}
+
+  pyenv-local:
+    desc: "Set local Python version"
+    cmds:
+      - pyenv local {{.VENV}}
+
+  pyenv-remove:
+    desc: "Remove pyenv virtualenv"
+    cmds:
+      - pyenv virtualenv-delete {{.VENV}}
+
+  setup:
+    desc: "Full project setup (pyenv + UV sync)"
+    cmds:
+      - task: pyenv-create
+      - task: pyenv-local
+      - task: uv-sync
+
+  # ==========================================================================
+  # UV Workspace Commands
+  # ==========================================================================
+  uv-sync:
+    desc: "Sync all workspace packages with dev dependencies"
+    cmds:
+      - uv sync --all-packages --group dev
+
+  uv-lock:
+    desc: "Update the lockfile"
+    cmds:
+      - uv lock
+
+  uv-add:
+    desc: "Add a dependency to root (e.g., task uv-add -- httpx)"
+    cmds:
+      - uv add {{.CLI_ARGS}}
+
+  uv-add-dev:
+    desc: "Add a dev dependency (e.g., task uv-add-dev -- ipython)"
+    cmds:
+      - uv add --group dev {{.CLI_ARGS}}
+
+  # ==========================================================================
+  # Code Formatting (Ruff)
+  # ==========================================================================
+  format:
+    desc: "Format code with Ruff"
+    cmds:
+      - uv run ruff format .
+      - uv run ruff check --fix .
+
+  format-check:
+    desc: "Check code formatting (no changes)"
+    cmds:
+      - uv run ruff format --check .
+
+  # ==========================================================================
+  # Linting (Ruff + MyPy)
+  # ==========================================================================
+  lint:
+    desc: "Run all linters"
+    cmds:
+      - task: ruff
+      - task: mypy
+
+  ruff:
+    desc: "Run Ruff linter"
+    cmds:
+      - uv run ruff check .
+
+  ruff-fix:
+    desc: "Run Ruff with auto-fix"
+    cmds:
+      - uv run ruff check --fix .
+
+  mypy:
+    desc: "Run MyPy type checker"
+    cmds:
+      - uv run mypy packages/
+
+  # ==========================================================================
+  # Testing (Pytest)
+  # ==========================================================================
+  test:
+    desc: "Run all tests except integration"
+    cmds:
+      - uv run pytest -s -vv -m "not integration" {{.CLI_ARGS}}
+
+  test-unit:
+    desc: "Run unit tests only"
+    cmds:
+      - uv run pytest -s -vv tests/unit/ {{.CLI_ARGS}}
+
+  test-integration:
+    desc: "Run integration tests (requires API keys)"
+    cmds:
+      - uv run pytest -s -vv tests/integration/ -m "integration" {{.CLI_ARGS}}
+
+  test-cov:
+    desc: "Run tests with coverage report"
+    cmds:
+      - uv run pytest -s -vv --ignore=tests/integration --cov=packages --cov-report=term --cov-report=html
+
+  # ==========================================================================
+  # CI/CD Tasks
+  # ==========================================================================
+  ci:
+    desc: "Run all CI checks"
+    cmds:
+      - task: format-check
+      - task: lint
+      - task: test
+
+  # ==========================================================================
+  # Development Utilities
+  # ==========================================================================
+  clean:
+    desc: "Clean build artifacts and caches"
+    cmds:
+      - rm -rf .pytest_cache .mypy_cache .ruff_cache __pycache__ .coverage htmlcov
+      - find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+      - find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
+
+  # ==========================================================================
+  # Running Patterns
+  # ==========================================================================
+  run:
+    desc: "Run a pattern (e.g., task run -- p01-basic-graph)"
+    cmds:
+      - uv run --package {{.CLI_ARGS}} {{.CLI_ARGS}}
+
+  run-module:
+    desc: "Run pattern as module (e.g., task run-module -- p01_basic_graph)"
+    cmds:
+      - uv run python -m {{.CLI_ARGS}}.main
+
+  list-patterns:
+    desc: "List all available patterns"
+    cmds:
+      - 'ls -d packages/p*/ 2>/dev/null | xargs -I {} basename {} || echo "No patterns found"'
