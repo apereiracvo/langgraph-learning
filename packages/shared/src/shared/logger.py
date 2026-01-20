@@ -147,9 +147,7 @@ def setup_logger(
     """
     resolved_level: str | LogLevel
     if level is None:
-        resolved_level = (
-            _get_log_level_from_settings() if use_settings else "INFO"
-        )
+        resolved_level = _get_log_level_from_settings() if use_settings else "INFO"
     else:
         resolved_level = level
 

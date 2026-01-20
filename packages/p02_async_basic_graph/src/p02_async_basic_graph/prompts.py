@@ -1,4 +1,4 @@
-"""Prompt loading and management utilities for p01_basic_graph.
+"""Prompt loading and management utilities for p02_async_basic_graph.
 
 This module provides pattern-specific wrappers around the shared prompt
 utilities. The main value is providing the prompts directory automatically

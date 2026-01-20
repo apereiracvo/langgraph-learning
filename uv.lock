@@ -10,6 +10,7 @@ resolution-markers = [
 members = [
     "langgraph-learning",
     "p01-basic-graph",
+    "p02-async-basic-graph",
     "shared",
 ]
 
@@ -909,6 +910,29 @@ wheels = [
 name = "p01-basic-graph"
 version = "0.2.0"
 source = { editable = "packages/p01_basic_graph" }
+dependencies = [
+    { name = "langchain" },
+    { name = "langchain-anthropic" },
+    { name = "langchain-google-genai" },
+    { name = "langchain-openai" },
+    { name = "langgraph" },
+    { name = "shared" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "langchain", specifier = ">=1.0,<2.0" },
+    { name = "langchain-anthropic", specifier = ">=0.3,<2.0" },
+    { name = "langchain-google-genai", specifier = ">=2.0,<3.0" },
+    { name = "langchain-openai", specifier = ">=0.3,<2.0" },
+    { name = "langgraph", specifier = ">=0.2,<2.0" },
+    { name = "shared", editable = "packages/shared" },
+]
+
+[[package]]
+name = "p02-async-basic-graph"
+version = "0.1.0"
+source = { editable = "packages/p02_async_basic_graph" }
 dependencies = [
     { name = "langchain" },
     { name = "langchain-anthropic" },

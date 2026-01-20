@@ -98,8 +98,7 @@ class TestLLMSettings:
 
         assert llm_settings.openai_api_key is not None
         assert (
-            llm_settings.openai_api_key.get_secret_value()
-            == "sk-real-key-abc123def456"
+            llm_settings.openai_api_key.get_secret_value() == "sk-real-key-abc123def456"
         )
 
     def test_secret_str_masking(self) -> None:
@@ -140,9 +139,7 @@ class TestLangSmithSettings:
         )
 
         assert langsmith_settings.api_key is not None
-        assert (
-            langsmith_settings.api_key.get_secret_value() == "ls-real-api-key-12345"
-        )
+        assert langsmith_settings.api_key.get_secret_value() == "ls-real-api-key-12345"
 
 
 class TestSettings:
@@ -223,8 +220,7 @@ class TestSettings:
 
         assert test_settings.llm.openai_api_key is not None
         assert (
-            test_settings.llm.openai_api_key.get_secret_value()
-            == "sk-nested-key-12345"
+            test_settings.llm.openai_api_key.get_secret_value() == "sk-nested-key-12345"
         )
         assert test_settings.llm.default_model == "gpt-4-turbo"
 
@@ -248,8 +244,7 @@ class TestSettings:
         assert test_settings.langsmith.tracing_enabled is True
         assert test_settings.langsmith.api_key is not None
         assert (
-            test_settings.langsmith.api_key.get_secret_value()
-            == "ls-nested-key-12345"
+            test_settings.langsmith.api_key.get_secret_value() == "ls-nested-key-12345"
         )
         assert test_settings.langsmith.project == "my-custom-project"
 
@@ -279,9 +274,7 @@ class TestSettings:
         )
         assert test_settings.langsmith.tracing_enabled is True
         assert test_settings.langsmith.api_key is not None
-        assert (
-            test_settings.langsmith.api_key.get_secret_value() == "ls-flat-key-12345"
-        )
+        assert test_settings.langsmith.api_key.get_secret_value() == "ls-flat-key-12345"
         assert test_settings.langsmith.project == "flat-project"
 
     def test_nested_takes_precedence_over_flat(

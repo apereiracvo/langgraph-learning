@@ -224,8 +224,7 @@ class TestParameterizedProviders:
         llm: BaseChatModel = create_llm(provider, settings, temperature=0.0)
 
         response: AIMessage = llm.invoke(
-            "Complete this sequence: 1, 2, 3, __. "
-            "Respond with only the number."
+            "Complete this sequence: 1, 2, 3, __. Respond with only the number."
         )
 
         response_text: str = str(response.content).strip()

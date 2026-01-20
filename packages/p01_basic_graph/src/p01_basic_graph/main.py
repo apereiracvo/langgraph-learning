@@ -19,10 +19,10 @@ import sys
 from typing import TYPE_CHECKING, Any
 
 from p01_basic_graph.graph import create_graph
-from p01_basic_graph.llm import get_available_providers
 from p01_basic_graph.prompts import load_system_prompt
 from p01_basic_graph.state import GraphState, create_initial_state
 from shared.exceptions import LLMConfigurationError, PromptLoadError
+from shared.llm import get_available_providers
 from shared.logger import logger
 from shared.settings import settings
 from shared.utils import format_response
@@ -76,7 +76,9 @@ def _validate_provider(
     return True
 
 
-def _display_result(user_input: str, result: dict[str, Any], provider: LLMProvider) -> None:
+def _display_result(
+    user_input: str, result: dict[str, Any], provider: LLMProvider
+) -> None:
     """Display the graph execution result.
 
     Args:

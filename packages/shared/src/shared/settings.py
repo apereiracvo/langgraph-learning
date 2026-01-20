@@ -76,7 +76,9 @@ class LLMSettings(BaseModel):
         description="Default LLM provider (openai, anthropic, google)",
     )
 
-    @field_validator("openai_api_key", "anthropic_api_key", "google_api_key", mode="before")
+    @field_validator(
+        "openai_api_key", "anthropic_api_key", "google_api_key", mode="before"
+    )
     @classmethod
     def reject_placeholder_keys(cls, v: str | None) -> str | None:
         """Reject placeholder API keys that are not real values.

@@ -1,7 +1,11 @@
-"""State definitions for the LLM Graph pattern.
+"""State definitions for the Async LLM Graph pattern.
 
 This module defines the graph state schema using TypedDict with full type hints.
 The state tracks the conversation, LLM responses, and configuration.
+
+Note:
+    State definitions are identical to the synchronous version since
+    async execution does not change the state schema.
 """
 
 from __future__ import annotations
@@ -15,7 +19,7 @@ from shared.enums import LLMProvider  # noqa: TC001
 
 
 class GraphState(TypedDict):
-    """Graph state for LLM-powered conversation.
+    """Graph state for async LLM-powered conversation.
 
     This state schema tracks all information needed for LLM interactions.
 
@@ -50,7 +54,7 @@ def create_initial_state(
         system_prompt: The system prompt content.
 
     Returns:
-        A fully initialized GraphState ready for graph invocation.
+        A fully initialized GraphState ready for async graph invocation.
 
     Example:
         >>> state = create_initial_state(
