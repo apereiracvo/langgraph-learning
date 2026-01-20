@@ -29,10 +29,18 @@ if TYPE_CHECKING:
     from langgraph.graph.state import CompiledStateGraph
 
 
+# region Constants
+
 
 # Display constants
-_MAX_CONTENT_LENGTH = 200
-_MAX_CHECKPOINTS_DISPLAY = 5
+MAX_CONTENT_LENGTH = 200
+MAX_CHECKPOINTS_DISPLAY = 5
+
+
+# endregion
+
+
+# region Private Functions
 
 
 def _display_messages(messages: list[BaseMessage], title: str) -> None:
@@ -56,9 +64,15 @@ def _display_messages(messages: list[BaseMessage], title: str) -> None:
             elif msg.content:
                 # Truncate long responses for display
                 content = str(msg.content)
-                if len(content) > _MAX_CONTENT_LENGTH:
-                    content = content[:_MAX_CONTENT_LENGTH] + "..."
+                if len(content) > MAX_CONTENT_LENGTH:
+                    content = content[:MAX_CONTENT_LENGTH] + "..."
                 print(f"[ASSISTANT]: {content}")
+
+
+# endregion
+
+
+# region Public Functions
 
 
 async def run_conversation_demo() -> None:
@@ -141,14 +155,21 @@ async def run_conversation_demo() -> None:
         checkpoint_count = 0
         async for state_snapshot in agent.aget_state_history(config):  # type: ignore[arg-type]
             checkpoint_count += 1
-            step = state_snapshot.metadata.get("step", "?") if state_snapshot.metadata else "?"
+            step = (
+                state_snapshot.metadata.get("step", "?")
+                if state_snapshot.metadata
+                else "?"
+            )
             msg_count = len(state_snapshot.values.get("messages", []))
             print(f"  Checkpoint {checkpoint_count}: Step {step}, {msg_count} messages")
 
             # Limit display to avoid overwhelming output
-            if checkpoint_count >= _MAX_CHECKPOINTS_DISPLAY:
-                print(f"  ... (showing first {_MAX_CHECKPOINTS_DISPLAY} checkpoints)")
+            if checkpoint_count >= MAX_CHECKPOINTS_DISPLAY:
+                print(f"  ... (showing first {MAX_CHECKPOINTS_DISPLAY} checkpoints)")
                 break
 
         print(f"\nTotal checkpoints found: {checkpoint_count}+")
         print("-" * 50)
+
+
+# endregion

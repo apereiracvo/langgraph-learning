@@ -172,5 +172,3 @@ def create_react_agent(settings: Settings) -> ReactAgentWrapper:
         >>> result = await agent.ainvoke(initial_state)
     """
     return ReactAgentWrapper(settings)
-
-

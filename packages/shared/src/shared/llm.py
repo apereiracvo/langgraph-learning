@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from shared.settings import Settings
 
 
+# region Constants
 
 
 # Default model identifiers for each provider
@@ -35,6 +36,12 @@ DEFAULT_MODELS: dict[LLMProvider, str] = {
     LLMProvider.ANTHROPIC: "claude-sonnet-4-5-20250929",  # Claude Sonnet 4.5
     LLMProvider.GOOGLE: "gemini-2.5-flash",  # Gemini 2.5 Flash stable
 }
+
+
+# endregion
+
+
+# region Public Functions
 
 
 def create_llm(
@@ -80,6 +87,12 @@ def create_llm(
     # This branch handles potential future providers or invalid input
     msg: str = f"Unsupported provider: {provider}"  # type: ignore[unreachable]
     raise LLMConfigurationError(provider, msg)
+
+
+# endregion
+
+
+# region Private Functions
 
 
 def _create_openai_llm(
@@ -202,6 +215,12 @@ def _create_google_llm(
     return llm
 
 
+# endregion
+
+
+# region Public Functions
+
+
 def get_available_providers(settings: Settings) -> list[LLMProvider]:
     """Get list of providers with configured API keys.
 
@@ -232,3 +251,6 @@ def get_available_providers(settings: Settings) -> list[LLMProvider]:
         available.append(LLMProvider.GOOGLE)
 
     return available
+
+
+# endregion

@@ -17,14 +17,10 @@ from typing import TYPE_CHECKING, Any
 import pytest
 
 from p01_basic_graph.graph import create_graph
-from p01_basic_graph.llm import (
-    DEFAULT_MODELS,
-    LLMProvider,
-    create_llm,
-    get_available_providers,
-)
 from p01_basic_graph.prompts import load_system_prompt
 from p01_basic_graph.state import GraphState, create_initial_state
+from shared.enums import LLMProvider
+from shared.llm import DEFAULT_MODELS, create_llm, get_available_providers
 from shared.settings import settings
 
 

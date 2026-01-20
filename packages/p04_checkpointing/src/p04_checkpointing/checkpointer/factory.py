@@ -28,8 +28,6 @@ if TYPE_CHECKING:
     from langgraph.checkpoint.base import BaseCheckpointSaver
 
 
-
-
 class CheckpointerType(StrEnum):
     """Supported checkpointer backend types.
 
@@ -129,8 +127,7 @@ async def get_checkpointer(
         ...     result = await graph.ainvoke(state, config)
 
         >>> async with get_checkpointer(
-        ...     CheckpointerType.SQLITE,
-        ...     db_path="checkpoints.db"
+        ...     CheckpointerType.SQLITE, db_path="checkpoints.db"
         ... ) as cp:
         ...     graph = builder.compile(checkpointer=cp)
         ...     result = await graph.ainvoke(state, config)

@@ -32,10 +32,18 @@ if TYPE_CHECKING:
     from shared.enums import LLMProvider
 
 
+# region Constants
+
 
 # Display constants
-_MAX_CONTENT_LENGTH = 300
-_RECENT_MESSAGES_COUNT = 3
+MAX_CONTENT_LENGTH = 300
+RECENT_MESSAGES_COUNT = 3
+
+
+# endregion
+
+
+# region Private Functions
 
 
 def _display_messages(messages: list[BaseMessage]) -> None:
@@ -55,8 +63,8 @@ def _display_messages(messages: list[BaseMessage]) -> None:
                     print(f"     Args: {tc['args']}")
             elif msg.content:
                 content = str(msg.content)
-                if len(content) > _MAX_CONTENT_LENGTH:
-                    content = content[:_MAX_CONTENT_LENGTH] + "..."
+                if len(content) > MAX_CONTENT_LENGTH:
+                    content = content[:MAX_CONTENT_LENGTH] + "..."
                 print(f"[ASSISTANT]: {content}")
 
 
@@ -69,8 +77,8 @@ def _get_recent_messages(messages: list[BaseMessage]) -> list[BaseMessage]:
     Returns:
         Last N messages.
     """
-    if len(messages) > _RECENT_MESSAGES_COUNT:
-        return messages[-_RECENT_MESSAGES_COUNT:]
+    if len(messages) > RECENT_MESSAGES_COUNT:
+        return messages[-RECENT_MESSAGES_COUNT:]
     return messages
 
 
@@ -147,6 +155,12 @@ async def _run_approval_scenario(
         _display_messages(messages)
 
 
+# endregion
+
+
+# region Public Functions
+
+
 async def run_approval_demo() -> None:
     """Demonstrate human-in-the-loop approval workflow.
 
@@ -200,3 +214,6 @@ async def run_approval_demo() -> None:
         print("\n" + "-" * 60)
         print("Approval demo completed!")
         print("-" * 60)
+
+
+# endregion

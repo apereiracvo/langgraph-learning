@@ -12,6 +12,7 @@ Key async patterns demonstrated:
 
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
@@ -30,6 +31,25 @@ if TYPE_CHECKING:
 
     from shared.enums import LLMProvider
     from shared.settings import Settings
+
+
+# region Constants
+
+
+class NodeName(StrEnum):
+    """Node names for the async LLM graph.
+
+    Attributes:
+        LLM: The LLM processing node.
+    """
+
+    LLM = "llm"
+
+
+# endregion
+
+
+# region Public Functions
 
 
 def create_async_llm_node(
@@ -143,11 +163,11 @@ def create_graph(settings: Settings) -> CompiledStateGraph:  # type: ignore[type
     llm_node_fn = create_async_llm_node(settings)
 
     # Add nodes
-    builder.add_node("llm", llm_node_fn)  # type: ignore[arg-type]
+    builder.add_node(NodeName.LLM, llm_node_fn)  # type: ignore[arg-type]
 
     # Define edges
-    builder.add_edge(START, "llm")
-    builder.add_edge("llm", END)
+    builder.add_edge(START, NodeName.LLM)
+    builder.add_edge(NodeName.LLM, END)
 
     # Compile and return
     compiled_graph: CompiledStateGraph = builder.compile()  # type: ignore[type-arg]
@@ -155,3 +175,4 @@ def create_graph(settings: Settings) -> CompiledStateGraph:  # type: ignore[type
     return compiled_graph
 
 
+# endregion

@@ -23,6 +23,7 @@ Graph Flow:
 from __future__ import annotations
 
 import json
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
 from langchain_core.messages import AIMessage, BaseMessage, SystemMessage, ToolMessage
@@ -47,6 +48,41 @@ if TYPE_CHECKING:
     from shared.settings import Settings
 
 
+# region Constants
+
+
+class NodeName(StrEnum):
+    """Node names for the approval agent.
+
+    Attributes:
+        AGENT: The agent decision-making node.
+        REQUEST_APPROVAL: Node that pauses for human approval.
+        EXECUTE_TOOLS: The tool execution node.
+        RESPOND: The response extraction node.
+    """
+
+    AGENT = "agent"
+    REQUEST_APPROVAL = "request_approval"
+    EXECUTE_TOOLS = "execute_tools"
+    RESPOND = "respond"
+
+
+class ApprovalDecision(StrEnum):
+    """Human approval decision options.
+
+    Attributes:
+        APPROVE: Action is approved for execution.
+        REJECT: Action is rejected and will not be executed.
+    """
+
+    APPROVE = "approve"
+    REJECT = "reject"
+
+
+# endregion
+
+
+# region Private Functions
 
 
 def _create_agent_node(
@@ -116,23 +152,24 @@ def _route_action(state: CheckpointState) -> str:
         state: Current agent state.
 
     Returns:
-        Next node name: "request_approval", "execute_tools", or "respond".
+        Next node name: NodeName.REQUEST_APPROVAL, NodeName.EXECUTE_TOOLS,
+        or NodeName.RESPOND.
     """
     # If there's a pending action needing approval
     if state.get("pending_action"):
-        return "request_approval"
+        return NodeName.REQUEST_APPROVAL
 
     # If there are tool calls (but not sensitive ones)
     messages: list[BaseMessage] = state["messages"]
     if messages:
         last = messages[-1]
         if isinstance(last, AIMessage) and last.tool_calls:
-            return "execute_tools"
+            return NodeName.EXECUTE_TOOLS
 
-    return "respond"
+    return NodeName.RESPOND
 
 
-def request_approval_node(state: CheckpointState) -> dict[str, Any]:
+def _request_approval_node(state: CheckpointState) -> dict[str, Any]:
     """Interrupt and wait for human approval.
 
     IMPORTANT: Code before interrupt() re-executes on resume.
@@ -148,14 +185,16 @@ def request_approval_node(state: CheckpointState) -> dict[str, Any]:
 
     # Interrupt execution and wait for human input
     # The interrupt() call pauses here until resumed with Command(resume=...)
-    approval: str = interrupt({
-        "message": "Approval required for sensitive action:",
-        "action": pending,
-        "options": ["approve", "reject"],
-    })
+    approval: str = interrupt(
+        {
+            "message": "Approval required for sensitive action:",
+            "action": pending,
+            "options": [ApprovalDecision.APPROVE, ApprovalDecision.REJECT],
+        }
+    )
 
     # This code runs AFTER resume with the approval value
-    is_approved = approval == "approve"
+    is_approved = approval == ApprovalDecision.APPROVE
 
     return {
         "action_approved": is_approved,
@@ -222,7 +261,9 @@ def _create_execute_tools_node(
 
             tool_messages.append(
                 ToolMessage(
-                    content=json.dumps(result) if not isinstance(result, str) else result,
+                    content=json.dumps(result)
+                    if not isinstance(result, str)
+                    else result,
                     name=tool_name,
                     tool_call_id=tool_call_id,
                 )
@@ -237,7 +278,7 @@ def _create_execute_tools_node(
     return execute_tools_node
 
 
-def respond_node(state: CheckpointState) -> dict[str, Any]:
+def _respond_node(state: CheckpointState) -> dict[str, Any]:
     """Extract final response from messages.
 
     Args:
@@ -270,14 +311,20 @@ def _route_after_tools(state: CheckpointState) -> str:
         state: Current agent state.
 
     Returns:
-        Next node: "agent" or "respond".
+        Next node: NodeName.AGENT or NodeName.RESPOND.
     """
     # If final_response is set (rejection case), go to respond/END
     if state.get("final_response"):
-        return "respond"
+        return NodeName.RESPOND
 
     # Otherwise loop back to agent for follow-up
-    return "agent"
+    return NodeName.AGENT
+
+
+# endregion
+
+
+# region Public Functions
 
 
 def create_approval_agent(
@@ -314,6 +361,7 @@ def create_approval_agent(
         ...     if current.next:
         ...         # Resume with approval
         ...         from langgraph.types import Command
+        ...
         ...         result2 = await agent.ainvoke(Command(resume="approve"), config)
     """
     tools: list[BaseTool] = get_all_tools()
@@ -326,32 +374,32 @@ def create_approval_agent(
     # Build graph
     builder: StateGraph[CheckpointState] = StateGraph(CheckpointState)
 
-    builder.add_node("agent", agent_node_fn)  # type: ignore[call-overload]
-    builder.add_node("request_approval", request_approval_node)
-    builder.add_node("execute_tools", execute_tools_fn)  # type: ignore[arg-type]
-    builder.add_node("respond", respond_node)
+    builder.add_node(NodeName.AGENT, agent_node_fn)  # type: ignore[call-overload]
+    builder.add_node(NodeName.REQUEST_APPROVAL, _request_approval_node)
+    builder.add_node(NodeName.EXECUTE_TOOLS, execute_tools_fn)  # type: ignore[arg-type]
+    builder.add_node(NodeName.RESPOND, _respond_node)
 
     # Define edges
-    builder.add_edge(START, "agent")
+    builder.add_edge(START, NodeName.AGENT)
     builder.add_conditional_edges(
-        "agent",
+        NodeName.AGENT,
         _route_action,
         {
-            "request_approval": "request_approval",
-            "execute_tools": "execute_tools",
-            "respond": "respond",
+            NodeName.REQUEST_APPROVAL: NodeName.REQUEST_APPROVAL,
+            NodeName.EXECUTE_TOOLS: NodeName.EXECUTE_TOOLS,
+            NodeName.RESPOND: NodeName.RESPOND,
         },
     )
-    builder.add_edge("request_approval", "execute_tools")
+    builder.add_edge(NodeName.REQUEST_APPROVAL, NodeName.EXECUTE_TOOLS)
     builder.add_conditional_edges(
-        "execute_tools",
+        NodeName.EXECUTE_TOOLS,
         _route_after_tools,
         {
-            "agent": "agent",  # Loop back for follow-up after successful tool execution
-            "respond": "respond",  # Go to END after rejection
+            NodeName.AGENT: NodeName.AGENT,  # Loop back for follow-up
+            NodeName.RESPOND: NodeName.RESPOND,  # Go to END after rejection
         },
     )
-    builder.add_edge("respond", END)
+    builder.add_edge(NodeName.RESPOND, END)
 
     # Compile WITH checkpointer - required for interrupt() to work
     compiled: CompiledStateGraph = builder.compile(  # type: ignore[type-arg]
@@ -359,3 +407,6 @@ def create_approval_agent(
     )
 
     return compiled
+
+
+# endregion

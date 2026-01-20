@@ -19,8 +19,6 @@ if TYPE_CHECKING:
     from shared.enums import LLMProvider
 
 
-
-
 class LangGraphLearningError(Exception):
     """Base exception for all project errors.
 

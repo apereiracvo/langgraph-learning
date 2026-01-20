@@ -279,7 +279,9 @@ async def _run_demos(
         provider, calc_query, system_prompt
     )
     if results["Basic Agent - Calculator"]:
-        _display_result(calc_query, results["Basic Agent - Calculator"], provider, "Basic")
+        _display_result(
+            calc_query, results["Basic Agent - Calculator"], provider, "Basic"
+        )
 
     # DEMO 2: Basic Agent with Weather
     _print_demo_header(2, "Basic Tool-Calling Agent - Weather")
@@ -287,7 +289,9 @@ async def _run_demos(
         provider, weather_query, system_prompt
     )
     if results["Basic Agent - Weather"]:
-        _display_result(weather_query, results["Basic Agent - Weather"], provider, "Basic")
+        _display_result(
+            weather_query, results["Basic Agent - Weather"], provider, "Basic"
+        )
 
     # DEMO 3: ReAct Agent with Calculator
     _print_demo_header(3, "ReAct Agent - Calculator")
@@ -295,7 +299,9 @@ async def _run_demos(
         provider, calc_query, system_prompt
     )
     if results["ReAct Agent - Calculator"]:
-        _display_result(calc_query, results["ReAct Agent - Calculator"], provider, "ReAct")
+        _display_result(
+            calc_query, results["ReAct Agent - Calculator"], provider, "ReAct"
+        )
 
     # DEMO 4: ReAct Agent with Weather
     _print_demo_header(4, "ReAct Agent - Weather")
@@ -303,7 +309,9 @@ async def _run_demos(
         provider, weather_query, system_prompt
     )
     if results["ReAct Agent - Weather"]:
-        _display_result(weather_query, results["ReAct Agent - Weather"], provider, "ReAct")
+        _display_result(
+            weather_query, results["ReAct Agent - Weather"], provider, "ReAct"
+        )
 
     return results
 

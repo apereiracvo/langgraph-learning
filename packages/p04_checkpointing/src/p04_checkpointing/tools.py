@@ -74,9 +74,7 @@ async def send_email(to: str, subject: str, body: str) -> str:
 
     Example:
         >>> result = await send_email(
-        ...     to="bob@example.com",
-        ...     subject="Hello",
-        ...     body="How are you?"
+        ...     to="bob@example.com", subject="Hello", body="How are you?"
         ... )
         >>> print(result)
         'Email sent to bob@example.com with subject: Hello'
@@ -103,10 +101,7 @@ async def write_file(path: str, content: str) -> str:
         Confirmation message with file details.
 
     Example:
-        >>> result = await write_file(
-        ...     path="/tmp/notes.txt",
-        ...     content="Important notes here"
-        ... )
+        >>> result = await write_file(path="/tmp/notes.txt", content="Important notes here")
         >>> print(result)
         'File written to /tmp/notes.txt (20 chars)'
     """
@@ -137,7 +132,9 @@ async def calculator(expression: str) -> str:
     # Safe eval for basic math - restrict to safe characters
     allowed_chars = set("0123456789+-*/(). ")
     if not all(c in allowed_chars for c in expression):
-        return "Error: Invalid characters in expression. Only numbers and +-*/() allowed."
+        return (
+            "Error: Invalid characters in expression. Only numbers and +-*/() allowed."
+        )
 
     try:
         result = eval(expression)  # noqa: S307

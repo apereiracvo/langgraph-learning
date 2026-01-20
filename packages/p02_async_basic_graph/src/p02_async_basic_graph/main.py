@@ -251,9 +251,9 @@ async def async_main() -> None:
     ]
 
     # Execute all in parallel
-    results: list[tuple[LLMProvider, dict[str, Any] | None, str | None]] = (
-        await asyncio.gather(*tasks)
-    )
+    results: list[
+        tuple[LLMProvider, dict[str, Any] | None, str | None]
+    ] = await asyncio.gather(*tasks)
 
     # Display results in order
     success_count: int = 0

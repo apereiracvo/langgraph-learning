@@ -73,5 +73,3 @@ def create_initial_state(
         "metadata": {},
     }
     return initial_state
-
-

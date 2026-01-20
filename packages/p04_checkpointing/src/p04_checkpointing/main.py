@@ -35,8 +35,6 @@ if TYPE_CHECKING:
     from shared.enums import LLMProvider
 
 
-
-
 class DemoType(StrEnum):
     """Available demo types.
 

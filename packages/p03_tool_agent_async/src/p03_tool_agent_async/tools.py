@@ -24,6 +24,9 @@ from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
 
+# region Constants
+
+
 class MathOperation(StrEnum):
     """Supported mathematical operations for the calculator tool."""
 
@@ -57,6 +60,53 @@ class WeatherInput(BaseModel):
     """
 
     city: str = Field(description="The name of the city to look up weather for")
+
+
+# Mock weather data for demonstration purposes
+MOCK_WEATHER_DATA: dict[str, dict[str, str | int]] = {
+    "tokyo": {
+        "condition": "Partly Cloudy",
+        "temperature": 18,
+        "humidity": 65,
+        "wind": "Light breeze from the east",
+    },
+    "new york": {
+        "condition": "Sunny",
+        "temperature": 22,
+        "humidity": 45,
+        "wind": "Calm",
+    },
+    "london": {
+        "condition": "Rainy",
+        "temperature": 12,
+        "humidity": 85,
+        "wind": "Moderate wind from the west",
+    },
+    "paris": {
+        "condition": "Overcast",
+        "temperature": 15,
+        "humidity": 70,
+        "wind": "Light wind from the north",
+    },
+    "san francisco": {
+        "condition": "Foggy",
+        "temperature": 16,
+        "humidity": 80,
+        "wind": "Gentle ocean breeze",
+    },
+    "sydney": {
+        "condition": "Clear and sunny",
+        "temperature": 28,
+        "humidity": 55,
+        "wind": "Warm northerly wind",
+    },
+}
+
+
+# endregion
+
+
+# region Tool Functions
 
 
 @tool(args_schema=CalculatorInput)
@@ -98,47 +148,6 @@ async def calculator(a: float, b: float, operation: MathOperation) -> str:
     return f"{a} {operation_symbol} {b} = {result}"
 
 
-# Mock weather data for demonstration purposes
-_MOCK_WEATHER_DATA: dict[str, dict[str, str | int]] = {
-    "tokyo": {
-        "condition": "Partly Cloudy",
-        "temperature": 18,
-        "humidity": 65,
-        "wind": "Light breeze from the east",
-    },
-    "new york": {
-        "condition": "Sunny",
-        "temperature": 22,
-        "humidity": 45,
-        "wind": "Calm",
-    },
-    "london": {
-        "condition": "Rainy",
-        "temperature": 12,
-        "humidity": 85,
-        "wind": "Moderate wind from the west",
-    },
-    "paris": {
-        "condition": "Overcast",
-        "temperature": 15,
-        "humidity": 70,
-        "wind": "Light wind from the north",
-    },
-    "san francisco": {
-        "condition": "Foggy",
-        "temperature": 16,
-        "humidity": 80,
-        "wind": "Gentle ocean breeze",
-    },
-    "sydney": {
-        "condition": "Clear and sunny",
-        "temperature": 28,
-        "humidity": 55,
-        "wind": "Warm northerly wind",
-    },
-}
-
-
 @tool(args_schema=WeatherInput)
 async def weather_lookup(city: str) -> str:
     """Look up the current weather for a specified city.
@@ -163,8 +172,8 @@ async def weather_lookup(city: str) -> str:
     """
     city_lower: str = city.lower().strip()
 
-    if city_lower in _MOCK_WEATHER_DATA:
-        weather = _MOCK_WEATHER_DATA[city_lower]
+    if city_lower in MOCK_WEATHER_DATA:
+        weather = MOCK_WEATHER_DATA[city_lower]
         return (
             f"Weather in {city.title()}:\n"
             f"  Condition: {weather['condition']}\n"
@@ -175,12 +184,18 @@ async def weather_lookup(city: str) -> str:
 
     # City not found - provide helpful response
     available_cities: str = ", ".join(
-        c.title() for c in sorted(_MOCK_WEATHER_DATA.keys())
+        c.title() for c in sorted(MOCK_WEATHER_DATA.keys())
     )
     return (
         f"Weather data not available for '{city}'. "
         f"Available cities: {available_cities}."
     )
+
+
+# endregion
+
+
+# region Public Functions
 
 
 def get_all_tools() -> list[Any]:
@@ -196,3 +211,4 @@ def get_all_tools() -> list[Any]:
     return [calculator, weather_lookup]
 
 
+# endregion

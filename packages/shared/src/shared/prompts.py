@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
+# region Public Functions
 
 
 @lru_cache(maxsize=32)
@@ -124,3 +125,6 @@ def clear_prompt_cache() -> None:
         >>> prompt = load_system_prompt("system.md", prompts_dir)  # Reloads from disk
     """
     load_system_prompt.cache_clear()
+
+
+# endregion

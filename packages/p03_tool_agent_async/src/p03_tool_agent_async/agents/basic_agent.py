@@ -16,6 +16,7 @@ Key patterns demonstrated:
 from __future__ import annotations
 
 import json
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
 from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
@@ -39,6 +40,27 @@ if TYPE_CHECKING:
     from shared.settings import Settings
 
 
+# region Constants
+
+
+class NodeName(StrEnum):
+    """Node names for the basic tool-calling agent.
+
+    Attributes:
+        AGENT: The agent decision-making node.
+        TOOLS: The tool execution node.
+    """
+
+    AGENT = "agent"
+    TOOLS = "tools"
+
+
+# endregion
+
+
+# region Private Functions
+
+
 def _should_continue(state: AgentState) -> str:
     """Determine whether to continue with tools or end.
 
@@ -50,7 +72,7 @@ def _should_continue(state: AgentState) -> str:
         state: Current agent state with messages.
 
     Returns:
-        "tools" if there are pending tool calls, END otherwise.
+        NodeName.TOOLS if there are pending tool calls, END otherwise.
     """
     messages: Sequence[BaseMessage] = state["messages"]
     if not messages:
@@ -60,7 +82,7 @@ def _should_continue(state: AgentState) -> str:
 
     # Check if the last message is an AIMessage with tool calls
     if isinstance(last_message, AIMessage) and last_message.tool_calls:
-        return "tools"
+        return NodeName.TOOLS
 
     return END
 
@@ -173,7 +195,9 @@ def _create_tool_node(
 
             tool_messages.append(
                 ToolMessage(
-                    content=json.dumps(result) if not isinstance(result, str) else result,
+                    content=json.dumps(result)
+                    if not isinstance(result, str)
+                    else result,
                     name=tool_name,
                     tool_call_id=tool_call_id,
                 )
@@ -185,6 +209,12 @@ def _create_tool_node(
         }
 
     return tool_node
+
+
+# endregion
+
+
+# region Public Functions
 
 
 def create_basic_agent(settings: Settings) -> CompiledStateGraph:  # type: ignore[type-arg]
@@ -217,20 +247,20 @@ def create_basic_agent(settings: Settings) -> CompiledStateGraph:  # type: ignor
     tool_node_fn = _create_tool_node(tools)
 
     # Add nodes
-    builder.add_node("agent", agent_node_fn)  # type: ignore[arg-type]
-    builder.add_node("tools", tool_node_fn)  # type: ignore[arg-type]
+    builder.add_node(NodeName.AGENT, agent_node_fn)  # type: ignore[arg-type]
+    builder.add_node(NodeName.TOOLS, tool_node_fn)  # type: ignore[arg-type]
 
     # Define edges
-    builder.add_edge(START, "agent")
+    builder.add_edge(START, NodeName.AGENT)
     builder.add_conditional_edges(
-        "agent",
+        NodeName.AGENT,
         _should_continue,
         {
-            "tools": "tools",
+            NodeName.TOOLS: NodeName.TOOLS,
             END: END,
         },
     )
-    builder.add_edge("tools", "agent")
+    builder.add_edge(NodeName.TOOLS, NodeName.AGENT)
 
     # Compile and return
     compiled: CompiledStateGraph = builder.compile()  # type: ignore[type-arg]
@@ -238,3 +268,4 @@ def create_basic_agent(settings: Settings) -> CompiledStateGraph:  # type: ignor
     return compiled
 
 
+# endregion

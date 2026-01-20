@@ -13,19 +13,11 @@ import pytest
 from langchain_core.messages import AIMessage
 
 from p01_basic_graph.graph import create_graph, create_llm_node
-from p01_basic_graph.llm import (
-    DEFAULT_MODELS,
-    create_llm,
-    get_available_providers,
-)
-from p01_basic_graph.prompts import (
-    clear_prompt_cache,
-    load_system_prompt,
-    render_prompt,
-)
 from p01_basic_graph.state import GraphState, create_initial_state
 from shared.enums import LLMProvider
 from shared.exceptions import LLMConfigurationError, PromptLoadError
+from shared.llm import DEFAULT_MODELS, create_llm, get_available_providers
+from shared.prompts import clear_prompt_cache, load_system_prompt, render_prompt
 
 
 if TYPE_CHECKING:

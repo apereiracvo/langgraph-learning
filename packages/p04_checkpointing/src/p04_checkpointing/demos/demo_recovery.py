@@ -14,6 +14,7 @@ Key Concepts Demonstrated:
 from __future__ import annotations
 
 from collections.abc import Callable
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
 from langgraph.graph import END, START, StateGraph
@@ -27,17 +28,44 @@ if TYPE_CHECKING:
     from langgraph.graph.state import CompiledStateGraph
 
 
+# region Constants
+
+
+class NodeName(StrEnum):
+    """Node names for the recovery demo graph.
+
+    Attributes:
+        STEP_1: First processing step.
+        STEP_2: Second processing step (simulates failure).
+        STEP_3: Third processing step.
+    """
+
+    STEP_1 = "step_1"
+    STEP_2 = "step_2"
+    STEP_3 = "step_3"
 
 
 # Type alias for step functions
 StepFunction = Callable[[CheckpointState], dict[str, Any]]
 
 # Error message constant
-_NETWORK_ERROR_MSG = "Simulated network error in step_2"
+NETWORK_ERROR_MSG = "Simulated network error in step_2"
+
+
+# endregion
+
+
+# region Exceptions
 
 
 class SimulatedNetworkError(Exception):
     """Simulated network failure for demonstration purposes."""
+
+
+# endregion
+
+
+# region Private Functions
 
 
 def _create_step_functions(
@@ -67,7 +95,7 @@ def _create_step_functions(
         # Simulate failure on first attempt
         metadata = state.get("metadata", {})
         if not metadata.get("step_2_retried"):
-            raise SimulatedNetworkError(_NETWORK_ERROR_MSG)
+            raise SimulatedNetworkError(NETWORK_ERROR_MSG)
 
         # Success on retry
         metadata = dict(metadata)
@@ -104,14 +132,14 @@ def _build_recovery_graph(
         Configured StateGraph.
     """
     builder: StateGraph[CheckpointState] = StateGraph(CheckpointState)
-    builder.add_node("step_1", step_1)  # type: ignore[call-overload]
-    builder.add_node("step_2", step_2)  # type: ignore[call-overload]
-    builder.add_node("step_3", step_3)  # type: ignore[call-overload]
+    builder.add_node(NodeName.STEP_1, step_1)  # type: ignore[call-overload]
+    builder.add_node(NodeName.STEP_2, step_2)  # type: ignore[call-overload]
+    builder.add_node(NodeName.STEP_3, step_3)  # type: ignore[call-overload]
 
-    builder.add_edge(START, "step_1")
-    builder.add_edge("step_1", "step_2")
-    builder.add_edge("step_2", "step_3")
-    builder.add_edge("step_3", END)
+    builder.add_edge(START, NodeName.STEP_1)
+    builder.add_edge(NodeName.STEP_1, NodeName.STEP_2)
+    builder.add_edge(NodeName.STEP_2, NodeName.STEP_3)
+    builder.add_edge(NodeName.STEP_3, END)
 
     return builder
 
@@ -249,6 +277,12 @@ def _print_summary(result: dict[str, Any]) -> None:
     )
 
 
+# endregion
+
+
+# region Public Functions
+
+
 async def run_fault_recovery_demo() -> None:
     """Demonstrate fault recovery using checkpoints.
 
@@ -295,3 +329,6 @@ async def run_fault_recovery_demo() -> None:
 
         # Print summary
         _print_summary(result)
+
+
+# endregion
