@@ -18,26 +18,41 @@ classifiers = [
 ]
 
 dependencies = [
-    "langchain>=0.3",
-    "langgraph>=0.2",
-    "langchain-openai>=0.2",
-    "langchain-anthropic>=0.3",
-    "python-dotenv>=1.0",
-    "pydantic>=2.0",
+    "langchain>=1.0,<2.0",
+    "langgraph>=0.2,<2.0",
+    "langchain-openai>=0.2,<2.0",
+    "langchain-anthropic>=0.3,<2.0",
+    "python-dotenv>=1.0,<2.0",
+    "pydantic>=2.0,<3.0",
 ]
 
 [dependency-groups]
 dev = [
-    "ruff>=0.9",
-    "mypy>=1.13",
-    "pytest>=8.0",
-    "pytest-asyncio>=0.24",
-    "pytest-cov>=6.0",
+    {include-group = "lint"},
+    {include-group = "test"},
+    {include-group = "typing"},
+]
+
+lint = [
+    "ruff>=0.9,<1.0",
+]
+
+test = [
+    "pytest>=8.0,<10.0",
+    "pytest-asyncio>=0.24,<2.0",
+    "pytest-cov>=6.0,<7.0",
+]
+
+typing = [
+    "mypy>=1.13,<2.0",
 ]
 
 # =============================================================================
 # UV WORKSPACE CONFIGURATION
 # =============================================================================
+[tool.uv]
+default-groups = ["dev"]
+
 [tool.uv.workspace]
 members = ["packages/*"]
 
@@ -87,6 +102,8 @@ select = [
     "PIE",    # flake8-pie
     "RET",    # flake8-return
     "PERF",   # Perflint - performance
+    "FURB",   # refurb - code modernization
+    "FLY",    # flynt - f-string conversion
 
     # Type Hints
     "ANN",    # flake8-annotations
@@ -98,6 +115,7 @@ select = [
 
     # Security
     "S",      # flake8-bandit
+    "DTZ",    # flake8-datetimez - timezone-aware datetime
 
     # Modern Python
     "UP",     # pyupgrade - modern syntax
@@ -109,12 +127,22 @@ select = [
     # Error Handling
     "TRY",    # tryceratops
     "EM",     # flake8-errmsg
+    "RSE",    # flake8-raise
 
     # Testing
     "PT",     # flake8-pytest-style
 
     # Naming
     "N",      # pep8-naming
+
+    # Logging
+    "G",      # flake8-logging-format
+    "LOG",    # flake8-logging
+
+    # Code Style
+    "FBT",    # flake8-boolean-trap
+    "SLF",    # flake8-self - private member access
+    "SLOT",   # flake8-slots
 
     # Miscellaneous
     "ARG",    # flake8-unused-arguments
@@ -139,7 +167,7 @@ fixable = ["ALL"]
 unfixable = ["F401", "F841", "ERA001"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = ["D", "ANN", "S101", "PLR2004", "ARG"]
+"tests/**/*.py" = ["D", "ANN", "S101", "PLR2004", "ARG", "FBT", "SLF"]
 "__init__.py" = ["F401", "D104"]
 "packages/**/main.py" = ["T20"]
 "notebooks/**/*.py" = ["D", "T20", "E501", "ANN"]
@@ -180,8 +208,10 @@ python_version = "3.12"
 strict = true
 warn_return_any = true
 warn_unused_ignores = true
+warn_unreachable = true
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
+enable_error_code = ["ignore-without-code", "redundant-cast", "truthy-bool"]
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
