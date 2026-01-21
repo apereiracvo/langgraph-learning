@@ -69,4 +69,4 @@ task list-patterns                  # List all available patterns
 
 Requires `.env` file with API keys (see `.env.example`):
 - `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` for LLM calls
-- `LANGCHAIN_API_KEY` for LangSmith tracing (optional)
+- `LANGSMITH__API_KEY` for LangSmith tracing (optional)

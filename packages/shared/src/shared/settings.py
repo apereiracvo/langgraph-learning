@@ -113,28 +113,43 @@ class LLMSettings(BaseModel):
 
 
 class LangSmithSettings(BaseModel):
-    """LangSmith tracing configuration.
+    """LangSmith tracing and observability configuration.
 
     Controls LangSmith integration for debugging and monitoring LangGraph
-    workflows.
+    workflows. Supports both cloud LangSmith and self-hosted deployments.
 
     Attributes:
         tracing_enabled: Whether LangSmith tracing is enabled.
         api_key: LangSmith API key.
         project: LangSmith project name for organizing traces.
+        endpoint: Custom endpoint URL for self-hosted LangSmith.
+        workspace_id: Workspace ID for multi-workspace accounts.
+        tracing_background: Whether to trace in background thread.
     """
 
     tracing_enabled: bool = Field(
         default=False,
-        description="Enable LangSmith tracing (LANGCHAIN_TRACING_V2)",
+        description="Enable LangSmith tracing (LANGSMITH__TRACING_ENABLED)",
     )
     api_key: SecretStr | None = Field(
         default=None,
-        description="LangSmith API key (LANGCHAIN_API_KEY)",
+        description="LangSmith API key (LANGSMITH__API_KEY)",
     )
     project: str = Field(
         default="langgraph-learning",
-        description="LangSmith project name (LANGCHAIN_PROJECT)",
+        description="LangSmith project name (LANGSMITH__PROJECT)",
+    )
+    endpoint: str = Field(
+        default="https://api.smith.langchain.com",
+        description="LangSmith endpoint URL (for self-hosted)",
+    )
+    workspace_id: str | None = Field(
+        default=None,
+        description="Workspace ID for multi-workspace accounts",
+    )
+    tracing_background: bool = Field(
+        default=True,
+        description="Enable background tracing (disable for serverless)",
     )
 
     @field_validator("api_key", mode="before")
